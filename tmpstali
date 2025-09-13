@@ -18,4 +18,6 @@ trap 'rm -rf "$TMP"' EXIT
 }
 
 unsquashfs -f -d "$TMP" "$SFS"
+basename "$TMP">/run/tmpstali
 systemd-nspawn -D "$TMP" -E TERM=linux /bin/init
+rm /run/tmpstali
