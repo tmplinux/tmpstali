@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+((EUID==0)) || { echo "run as root"; exit 1; }
+
+COPY="/var/lib/tmplinux/tmpstali"
+SFS="/var/lib/tmplinux/tmpstali.sfs"
+TMP=$(mktemp -d /tmp/container-XXXX)
+trap 'rm -rf "$TMP"' EXIT
+
+[[ -f $SFS ]] || {
+  mkdir -p "$COPY"
+  git clone http://git.sta.li/rootfs-x86_64 "$COPY"
+  passwd --root "$COPY" -d root
+  touch "$COPY/etc/os-release"
+  echo -e "$(head $COPY/etc/rc.init -n 62)\n/bin/respawn /bin/sh" > "$COPY/etc/rc.init"
+  mksquashfs "$COPY" "$SFS" -comp zstd
+  rm -rf "$COPY"
+}
+
+unsquashfs -f -d "$TMP" "$SFS"
+systemd-nspawn -D "$TMP" -E TERM=linux /bin/init
